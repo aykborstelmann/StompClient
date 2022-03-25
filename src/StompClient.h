@@ -66,7 +66,7 @@ class StompClient {
 
     void beginSSL() {
       // connect to websocket
-      _wsClient.beginSSL(_host, _port, _socketUrl());
+      _wsClient.beginSSL(_host, _port, _socketUrl().c_str());
       _wsClient.setExtraHeaders();
     }
 
@@ -193,7 +193,7 @@ class StompClient {
     uint32_t _heartbeats;
     uint32_t _commandCount;
 
-    const char* _socketUrl() {
+    String _socketUrl() {
       String socketUrl = _url;
       if (_sockjs) {
         socketUrl += random(0, 999);
@@ -202,11 +202,13 @@ class StompClient {
         socketUrl += "/websocket";
       }
 
-      return socketUrl.c_str();
+      return socketUrl;
     }
 
     void _handleWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
-      Serial.println("Event" + String((char*)payload));
+      String text = (char*) payload;
+      Serial.println("Event");
+      Serial.println(text);
 
       switch (type) {
         case WStype_DISCONNECTED:
@@ -225,12 +227,10 @@ class StompClient {
             } else if (payload[0] == 'o') {
               _connectStomp();
             } else if (payload[0] == 'a') {
-              String text = (char*) payload;
               StompCommand command = StompCommandParser::parse(text);
               _handleCommand(command);
             }
           } else {
-            String text = (char*) payload;
             StompCommand command = StompCommandParser::parse(text);
             _handleCommand(command);
           }
