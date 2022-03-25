@@ -226,7 +226,6 @@ class StompClient {
               _connectStomp();
             } else if (payload[0] == 'a') {
               String frame = (char*) payload;
-              String text = unframe(frame);
               StompCommand command = StompCommandParser::parse(text);
               _handleCommand(command);
             }
@@ -344,12 +343,12 @@ class StompClient {
 
     void _send(String lines[], uint8_t nlines) {
 
-      String msg = "[\"";
+      String msg;
       for (int i = 0; i < nlines; i++) {
         msg += lines[i];
-        msg += "\\n";
+        msg += "\n";
       }
-      msg += "\\n\\u0000\"]";
+      msg += "\n";
 
       _wsClient.sendTXT(msg.c_str(), msg.length() + 1);
       _commandCount++;
@@ -357,33 +356,23 @@ class StompClient {
 
     void _sendWithHeaders(String lines[], uint8_t nlines, StompHeaders headers) {
 
-      String msg = "[\"";
+      String msg;
       // Add the command
-      msg += lines[0] + "\\n";
+      msg += lines[0] + "\n";
       // Add the extra headers
       for(int i=0; i<headers.size(); i++) {
         StompHeader h = headers.get(i);
-        msg += h.key + ":" + h.value + "\\n";
+        msg += h.key + ":" + h.value + "\n";
       }
       // Now the rest of the message
       for (int i = 1; i < nlines; i++) {
         msg += lines[i];
-        msg += "\\n";
+        msg += "\n";
       }
-      msg += "\\n\\u0000\"]";
+      msg += "\n";
 
       _wsClient.sendTXT(msg.c_str(), msg.length() + 1);
       _commandCount++;
-    }
-
-    String unframe(String frame) {
-      int start = frame.indexOf("[\"");
-      int end = frame.lastIndexOf("\\u0000\"]");
-      if (start == -1 || end == -1) {
-        return frame;
-      }
-
-      return frame.substring(start + 2, end);
     }
 
 };

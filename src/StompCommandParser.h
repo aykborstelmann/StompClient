@@ -19,16 +19,16 @@ class StompCommandParser {
       // NULL
       // * (EOL)
 
-      String EOL = "\\n";
-      String EOL2 = "\\n\\n";
+      String EOL = "\n";
+      String EOL2 = "\n\n";
 
-      int headersStart = data.indexOf(EOL);
-      int bodyStart = data.indexOf(EOL2);
+      long headersStart = data.indexOf(EOL);
+      long bodyStart = data.indexOf(EOL2);
 
       StompCommand cmd;
       String headers;
-      int start = 0;
-      int end = 0;
+      long start = 0;
+      long end = 0;
 
       if (headersStart == -1) {
         cmd.command = data;
