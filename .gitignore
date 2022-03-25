@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+.idea/
+.pio
+CMakeListsPrivate.txt
+cmake-build-*/
+include/settings.h
