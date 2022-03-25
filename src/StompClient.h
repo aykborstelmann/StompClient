@@ -79,7 +79,7 @@ class StompClient {
        @param handler StompMessageHandler - The callback function to execute when a message is received
        @return int                        - The numeric id of the subscription, or -1 if no slots are available
     */
-    int subscribe(char *queue, Stomp_AckMode_t ackType, StompMessageHandler handler) {
+    int subscribe(const String& queue, Stomp_AckMode_t ackType, StompMessageHandler handler) {
       // Scan for an unused subscription slot
       for (int i = 0; i < STOMP_MAX_SUBSCRIPTIONS; i++) {
 
@@ -101,7 +101,7 @@ class StompClient {
               break;
           }
 
-          String lines[4] = { "SUBSCRIBE", "id:sub-" + String(i), "destination:" + String(queue), "ack:" + ack };
+          String lines[4] = { "SUBSCRIBE", "id:sub-" + String(i), "destination:" + queue, "ack:" + ack };
           _send(lines, 4);
 
           return i;
