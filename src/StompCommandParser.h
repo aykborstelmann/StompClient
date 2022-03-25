@@ -10,7 +10,7 @@ class StompCommandParser {
 
   public:
 
-    static StompCommand parse(String data) {
+    static StompCommand parse(const String& data) {
 
       // command EOL
       // * (header EOL)
@@ -53,7 +53,7 @@ class StompCommandParser {
 
       String header;
 
-      while (start < headers.length()) {
+      while (start < 0 || (unsigned) start < headers.length()) {
         end = headers.indexOf(EOL, start);
         if (end == -1) {
           header = headers.substring(start);

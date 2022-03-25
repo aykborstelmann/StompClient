@@ -39,20 +39,20 @@ class StompClient {
       const int port,
       const char *url,
       const bool sockjs
-    ) : _wsClient(wsClient), _host(host), _port(port), _url(url), _sockjs(sockjs), _id(0), _state(DISCONNECTED), _heartbeats(0),
-      _connectHandler(0), _disconnectHandler(0), _errorHandler(0), _commandCount(0) {
+    ) : _wsClient(wsClient), _host(host), _port(port), _url(url), _sockjs(sockjs), _id(0), _state(DISCONNECTED),_connectHandler(nullptr),_disconnectHandler(nullptr),
+      _receiptHandler(nullptr), _errorHandler(nullptr), _heartbeats(0), _commandCount(0) {
 
       _wsClient.onEvent( [this] (WStype_t type, uint8_t * payload, size_t length) {
         this->_handleWebSocketEvent(type, payload, length);
       } );
 
-      for (int i = 0; i < STOMP_MAX_SUBSCRIPTIONS; i++) {
-        _subscriptions[i].id = -1;
+      for (auto & _subscription : _subscriptions) {
+        _subscription.id = -1;
       }
 
     }
 
-    ~StompClient() {}
+    ~StompClient() = default;
 
     /**
        Call this in the setup() routine to initiate the connection.
@@ -119,7 +119,7 @@ class StompClient {
       _send(msg, 2);
 
       _subscriptions[subscription].id = -1;
-      _subscriptions[subscription].messageHandler = 0;
+      _subscriptions[subscription].messageHandler = nullptr;
     }
 
     /**
@@ -145,12 +145,12 @@ class StompClient {
       _send(msg, 2);
     }
 
-    void sendMessage(String destination, String message) {
+    void sendMessage(const String& destination, const String& message) {
       String lines[4] = { "SEND", "destination:" + destination, "", message };
       _send(lines, 4);
     }
 
-    void sendMessageAndHeaders(String destination, String message, StompHeaders headers) {
+    void sendMessageAndHeaders(const String& destination, const String& message, const StompHeaders& headers) {
       String lines[4] = { "SEND", "destination:" + destination, "", message };
       _sendWithHeaders(lines, 4, headers);
     }
@@ -225,7 +225,7 @@ class StompClient {
             } else if (payload[0] == 'o') {
               _connectStomp();
             } else if (payload[0] == 'a') {
-              String frame = (char*) payload;
+              String text = (char*) payload;
               StompCommand command = StompCommandParser::parse(text);
               _handleCommand(command);
             }
@@ -250,7 +250,7 @@ class StompClient {
       }
     }
 
-    void _handleCommand(StompCommand command) {
+    void _handleCommand(const StompCommand& command) {
 
       if (command.command.equals("CONNECTED")) {
 
@@ -273,7 +273,7 @@ class StompClient {
       }
     }
 
-    void _handleConnected(StompCommand command) {
+    void _handleConnected(const StompCommand& command) {
       if (_state != CONNECTED) {
         _state = CONNECTED;
         if (_connectHandler) {
@@ -288,7 +288,7 @@ class StompClient {
         // Not for us. Do nothing (raise an error one day??)
         return;
       }
-      int id = sub.substring(4).toInt();
+      long id = sub.substring(4).toInt();
 
       String messageId = message.headers.getValue("message-id");
 
@@ -317,7 +317,7 @@ class StompClient {
 
     }
 
-    void _handleReceipt(StompCommand command) {
+    void _handleReceipt(const StompCommand& command) {
 
       if(_receiptHandler) {
         _receiptHandler(command);
@@ -331,7 +331,7 @@ class StompClient {
       }
     }
 
-    void _handleError(StompCommand command) {
+    void _handleError(const StompCommand& command) {
       _state = DISCONNECTED;
       if (_errorHandler) {
         _errorHandler(command);

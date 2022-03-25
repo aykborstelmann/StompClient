@@ -1,3 +1,5 @@
+#include <utility>
+
 #ifndef STOMP_H
 #define STOMP_H
 
@@ -55,8 +57,8 @@ class StompHeaders {
 
     void append(String key, String value) {
       StompHeader h;
-      h.key = key;
-      h.value = value;
+      h.key = std::move(key);
+      h.value = std::move(value);
       append(h);
     }
 
@@ -80,7 +82,7 @@ class StompHeaders {
     /**
      * Return the value of the header with the given key
      */
-    String getValue(String key) {
+    String getValue(const String& key) {
 
       for (uint8_t i = 0; i < _idx; i++) {
         if (_headers[i].key.equals(key)) {
