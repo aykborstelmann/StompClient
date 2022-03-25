@@ -17,7 +17,7 @@
 
 #include "Stomp.h"
 #include "StompCommandParser.h"
-#include <WebsocketsClient.h>
+#include <WebSocketsClient.h>
 
 namespace Stomp {
 
@@ -193,7 +193,7 @@ class StompClient {
     uint32_t _heartbeats;
     uint32_t _commandCount;
 
-    String _socketUrl() {
+    const char* _socketUrl() {
       String socketUrl = _url;
       if (_sockjs) {
         socketUrl += random(0, 999);
@@ -202,7 +202,7 @@ class StompClient {
         socketUrl += "/websocket";
       }
 
-      return socketUrl;
+      return socketUrl.c_str();
     }
 
     void _handleWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
@@ -238,7 +238,7 @@ class StompClient {
 
           break;
 
-        case WStype_BIN:
+        default:
           break;
       }
     }
