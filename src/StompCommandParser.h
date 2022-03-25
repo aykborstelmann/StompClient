@@ -6,78 +6,78 @@
 namespace Stomp {
 
 
-class StompCommandParser {
+    class StompCommandParser {
 
-  public:
+    public:
 
-    static StompCommand parse(const String& data) {
+        static StompCommand parse(const String &data) {
 
-      // command EOL
-      // * (header EOL)
-      // EOL
-      // * Octet
-      // NULL
-      // * (EOL)
+            // command EOL
+            // * (header EOL)
+            // EOL
+            // * Octet
+            // NULL
+            // * (EOL)
 
-      String EOL = "\n";
-      String EOL2 = "\n\n";
+            String EOL = "\n";
+            String EOL2 = "\n\n";
 
-      long headersStart = data.indexOf(EOL);
-      long bodyStart = data.indexOf(EOL2);
+            long headersStart = data.indexOf(EOL);
+            long bodyStart = data.indexOf(EOL2);
 
-      StompCommand cmd;
-      String headers;
-      long start = 0;
-      long end = 0;
+            StompCommand cmd;
+            String headers;
+            long start = 0;
+            long end = 0;
 
-      if (headersStart == -1) {
-        cmd.command = data;
-      } else {
-        cmd.command = data.substring(0, headersStart);
-        headersStart += EOL.length();
-      }
-      cmd.command.trim();
+            if (headersStart == -1) {
+                cmd.command = data;
+            } else {
+                cmd.command = data.substring(0, headersStart);
+                headersStart += EOL.length();
+            }
+            cmd.command.trim();
 
-      if (bodyStart == -1) {
-        headers = data.substring(headersStart);
-        cmd.body = "";
-      } else {
-        headers = data.substring(headersStart, bodyStart);
+            if (bodyStart == -1) {
+                headers = data.substring(headersStart);
+                cmd.body = "";
+            } else {
+                headers = data.substring(headersStart, bodyStart);
 
-        bodyStart += EOL2.length();
-        cmd.body = data.substring(bodyStart);
-      }
+                bodyStart += EOL2.length();
+                cmd.body = data.substring(bodyStart);
+            }
 
-      headers.trim();
-      cmd.body.trim();
+            headers.trim();
+            cmd.body.trim();
 
-      String header;
+            String header;
 
-      while (start < 0 || (unsigned) start < headers.length()) {
-        end = headers.indexOf(EOL, start);
-        if (end == -1) {
-          header = headers.substring(start);
-          start = headers.length();
-        } else {
-          header = headers.substring(start, end);
-          start = end + EOL.length();
+            while (start < 0 || (unsigned) start < headers.length()) {
+                end = headers.indexOf(EOL, start);
+                if (end == -1) {
+                    header = headers.substring(start);
+                    start = headers.length();
+                } else {
+                    header = headers.substring(start, end);
+                    start = end + EOL.length();
+                }
+                header.trim();
+                // now split it into key and value
+                int idx = header.indexOf(":");
+                if (idx != -1) {
+                    StompHeader h;
+                    h.key = header.substring(0, idx);
+                    h.key.trim();
+                    h.value = header.substring(idx + 1);
+                    h.value.trim();
+                    cmd.headers.append(h);
+                }
+            }
+
+            return cmd;
         }
-        header.trim();
-        // now split it into key and value
-        int idx = header.indexOf(":");
-        if (idx != -1) {
-          StompHeader h;
-          h.key = header.substring(0, idx);
-          h.key.trim();
-          h.value = header.substring(idx + 1);
-          h.value.trim();
-          cmd.headers.append(h);
-        }
-      }
-
-      return cmd;
-    }
-};
+    };
 
 }
 #endif
