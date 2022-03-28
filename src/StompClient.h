@@ -39,9 +39,9 @@ namespace Stomp {
                 const int port,
                 const char *url,
                 const bool sockjs
-        ) : _wsClient(wsClient), _host(host), _port(port), _url(url), _sockjs(sockjs), _id(0), _state(DISCONNECTED),
-            _connectHandler(nullptr), _disconnectHandler(nullptr),
-            _receiptHandler(nullptr), _errorHandler(nullptr), _heartbeats(0), _commandCount(0) {
+        ) : _wsClient(wsClient), _host(host), _port(port), _url(url), _sockjs(sockjs), _user(nullptr), _id(0),
+            _state(DISCONNECTED), _connectHandler(nullptr), _disconnectHandler(nullptr), _receiptHandler(nullptr),
+            _errorHandler(nullptr), _heartbeats(0), _commandCount(0) {
 
             _wsClient.onEvent([this](WStype_t type, uint8_t *payload, size_t length) {
                 this->_handleWebSocketEvent(type, payload, length);
@@ -69,6 +69,11 @@ namespace Stomp {
             // connect to websocket
             _wsClient.beginSSL(_host, _port, _socketUrl().c_str());
             _wsClient.setExtraHeaders();
+        }
+
+        void loop() {
+            _wsClient.loop();
+            _doHeartbeat();
         }
 
         /**
@@ -172,15 +177,23 @@ namespace Stomp {
             _errorHandler = handler;
         }
 
+        void setUser(const char *user) {
+            _user = user;
+        }
+
     private:
+        const long _preferredHeartbeat = 10000;
 
         WebSocketsClient &_wsClient;
         const char *_host;
         const int _port;
         const char *_url;
         const bool _sockjs;
+        const char *_user;
 
         long _id;
+        unsigned long _lastSent = millis();
+        unsigned long _heartbeatInterval = 0;
 
         Stomp_State_t _state;
 
@@ -243,11 +256,39 @@ namespace Stomp {
             }
         }
 
+        void _doHeartbeat() {
+            if (_heartbeatInterval <= 0) {
+                return;
+            }
+
+            if (millis() - _lastSent > _heartbeatInterval) {
+                _sendHeartbeat();
+            }
+        }
+
+        void _sendHeartbeat() {
+            String msg = "\n";
+            Serial.println("SENDING HEARTBEAT");
+            Serial.println();
+
+            _wsClient.sendTXT(msg.c_str(), msg.length());
+            _lastSent = millis();
+            _commandCount++;
+        }
+
         void _connectStomp() {
             if (_state != OPENING) {
                 _state = OPENING;
-                String msg[3] = {"CONNECT", "accept-version:1.1,1.0", "heart-beat:10000,10000"};
-                _send(msg, 3);
+
+                String heartbeatHeader = "heart-beat:" + String(_preferredHeartbeat) + ",0";
+                String msg[5] = {"CONNECT", "accept-version:1.1,1.0", heartbeatHeader};
+                int current_length = 3;
+
+                if (_user != nullptr) {
+                    msg[current_length++] = "login:" + String(_user);
+                }
+
+                _send(msg, current_length);
             }
         }
 
@@ -277,9 +318,23 @@ namespace Stomp {
         void _handleConnected(const StompCommand &command) {
             if (_state != CONNECTED) {
                 _state = CONNECTED;
+                parseHeartbeat(command);
                 if (_connectHandler) {
                     _connectHandler(command);
                 }
+            }
+        }
+
+        void parseHeartbeat(const StompCommand &command) {
+            StompHeaders headers = command.headers;
+            const String &heartBeatHeader = headers.getValue("heart-beat");
+
+            if (!String("").equals(heartBeatHeader)) {
+                String heartbeatInterval = heartBeatHeader.substring(heartBeatHeader.indexOf(','),
+                                                                     heartBeatHeader.length());
+                _heartbeatInterval = max(heartBeatHeader.toInt(), _preferredHeartbeat);
+                Serial.println("Got heartbeat interval: " + String(_heartbeatInterval));
+                Serial.println();
             }
         }
 
@@ -343,7 +398,6 @@ namespace Stomp {
         }
 
         void _send(String lines[], uint8_t nlines) {
-
             String msg;
             for (int i = 0; i < nlines; i++) {
                 msg += lines[i];
@@ -351,7 +405,11 @@ namespace Stomp {
             }
             msg += "\n";
 
+            Serial.println("SENDING MESSAGE:");
+            Serial.println(msg);
+
             _wsClient.sendTXT(msg.c_str(), msg.length() + 1);
+            _lastSent = millis();
             _commandCount++;
         }
 
